@@ -35,11 +35,21 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      # android-actions/setup-android@v3 fails outright right now: it always tries to install
+      # the legacy standalone "tools" package, which Google has removed from the SDK repository
+      # ("Warning: Failed to find package 'tools'" -> sdkmanager exits 1 -> the action throws).
+      # ubuntu-latest already ships a full SDK with cmdline-tools preinstalled under
+      # $ANDROID_HOME, so drive sdkmanager directly for exactly what this build needs instead.
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses > /dev/null || true
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          "$SDKMANAGER" \
+            "platform-tools" \
+            "platforms;android-37" \
+            "build-tools;37.0.0" \
+            "ndk;29.0.14206865" \
+            "cmake;4.1.2"
 
       - name: Cache Gradle
         uses: actions/cache@v4
